@@ -1,0 +1,84 @@
+import pyautogui
+import time
+import argparse
+import threading
+import tkinter as tk
+import os
+import sys
+from tkinter import messagebox
+
+# Nustatome programos katalogą (Windows exe atveju)
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS  # PyInstaller
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# Argumentų analizatorius
+parser = argparse.ArgumentParser(description='Automatinis paspaudimų įrankis')
+parser.add_argument('-n', '--num_clicks', type=int, default=100, help='Paspaudimų skaičius')
+parser.add_argument('-d', '--delay', type=float, default=0.1, help='Intervalas tarp paspaudimų sekundėmis')
+parser.add_argument('-x', '--x_pos', type=int, help='X koordinatė')
+parser.add_argument('-y', '--y_pos', type=int, help='Y koordinatė')
+args = parser.parse_args()
+
+num_clicks = args.num_clicks
+delay = args.delay
+click_location = (args.x_pos, args.y_pos) if args.x_pos is not None and args.y_pos is not None else None
+
+clicking = False  # Būsena, ar veikia auto-clicker
+
+def auto_click():
+    global clicking
+    for _ in range(num_clicks):
+        if not clicking:
+            break
+        if click_location is None:
+            pyautogui.click()
+        else:
+            pyautogui.click(click_location[0], click_location[1])
+        time.sleep(delay)
+
+def start_clicking():
+    global clicking
+    if not clicking:
+        clicking = True
+        thread = threading.Thread(target=auto_click, daemon=True)
+        thread.start()
+
+def stop_clicking():
+    global clicking
+    clicking = False
+
+def screenshot():
+    screenshot = pyautogui.screenshot()
+    screenshot.save('screenshot.png')
+    messagebox.showinfo("Ekrano kopija", "Ekrano kopija išsaugota kaip 'screenshot.png'")
+
+# Sukuriame GUI
+root = tk.Tk()
+root.title("AutoClicker")
+root.geometry("300x200")
+root.attributes('-topmost', True)  # Laiko langą visada viršuje
+
+# Pridėti programos ikoną
+icon_path = resource_path("icon.png")
+icon = tk.PhotoImage(file=icon_path)
+root.iconphoto(True, icon)
+
+start_button = tk.Button(root, text="Pradėti", command=start_clicking, width=15, height=2)
+start_button.pack(pady=10)
+
+stop_button = tk.Button(root, text="Sustabdyti", command=stop_clicking, width=15, height=2)
+stop_button.pack(pady=10)
+
+screenshot_button = tk.Button(root, text="Ekrano kopija", command=screenshot, width=15, height=2)
+screenshot_button.pack(pady=10)
+
+# Automatiškai paleisti programą be terminalo Windows aplinkoje
+if __name__ == "__main__":
+    if getattr(sys, 'frozen', False):  # Jei paleista kaip .exe
+        sys.stdout = open(os.devnull, 'w')
+        sys.stderr = open(os.devnull, 'w')
+    root.mainloop()

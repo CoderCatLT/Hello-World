@@ -1,7 +1,0 @@
-print("Hello World")
-
-name = input("What's your name ?")
-if name == "Cat":
-  print("Hello" + name)
-else:
-  print("This name not found ")
